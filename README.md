@@ -1,37 +1,78 @@
-# elfin-parser
+[Libelfin](https://github.com/aclements/libelfin/) is a from-scratch
+C++11 library for reading ELF binaries and DWARFv4 debug information.
 
-#### 介绍
-elfin-parser is a from-scratch C++11 library for reading ELF binaries and DWARFv4 debug information,
+Quick start
+-----------
 
-#### 软件架构
-软件架构说明
+`make`, and optionally `make install`.  You'll need GCC 4.7 or later.
+
+Another way:
+
+`bash build.sh`. You'll need cmake 3.12 or later.
+
+Features
+--------
+
+* Native C++11 code and interface, designed from scratch to interact
+  well with C++11 features, from range-based for loops to move
+  semantics to enum classes.
+
+* Libelfin fully implements parsing for Debugging Information Entries
+  (DIEs), the core data structure used by the DWARF format, as well as
+  most DWARFv4 tables.
+
+* Supports all DWARFv4 DIE value types except location lists and
+  macros.
+
+* Nearly complete evaluator for DWARFv4 expressions and location
+  descriptions.
+
+* Complete interpreter for DWARFv4 line tables.
+
+* Iterators for easily and naturally traversing compilation units,
+  type units, DIE trees, and DIE attribute lists.
+
+* Every enum value can be pretty-printed.
+
+* Large collection of type-safe DIE attribute fetchers.
+
+* Supports DWARF5, add signal handler and add function to convert function name to string.
+
+Non-features
+------------
+
+Libelfin implements a *syntactic* layer for DWARF and ELF, but not a
+*semantic* layer.  Interpreting the information stored in DWARF DIE
+trees still requires a great deal of understanding of DWARF, but
+libelfin will make sense of the bytes for you.
+
+Using libelfin
+--------------
+
+To build against `libdwarf++`, use, for example
+
+    g++ -std=c++11 a.cc $(pkg-config --cflags --libs libdwarf++)
+
+To use a local build of libelfin, set `PKG_CONFIG_PATH`.  For example,
+
+    export PKG_CONFIG_PATH=$PWD/elf:$PWD/dwarf
+
+There are various example programs in `examples/`.
+
+Another way:
+
+    LD_PRELOAD=$PWD/install/lib64/libstdc++.so workload
+
+Status
+------
+
+Libelfin is a good start.  It's not production-ready and there are
+many parts of the DWARF specification it does not yet implement, but
+it's complete enough to be useful for many things and is a good deal
+more pleasant to use than every other debug info library I've tried.
 
 
-#### 安装教程
+Thanks
+------
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 使用说明
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 参与贡献
-
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
-
-
-#### 特技
-
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+Thanks to Austin T. Clements for contributing to the basic features of the software

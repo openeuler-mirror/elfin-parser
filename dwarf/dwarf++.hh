@@ -10,6 +10,7 @@
 #define DWARFPP_END_NAMESPACE   }
 #endif
 
+#include "../common/shared_weak.h"
 #include "data.hh"
 #include "small_vector.hh"
 
@@ -142,7 +143,7 @@ public:
          */
         bool valid() const
         {
-                return !!m;
+                return m;
         }
 
         // XXX This allows the compilation units to be modified and
@@ -167,9 +168,16 @@ public:
         std::shared_ptr<section> get_section(section_type type) const;
         bool has_section(section_type type) const;
 
+        dwarf get_weak_copy()
+        {
+                dwarf weak = *this;
+                weak.m.ToWeak();
+                return weak;
+        }
+
 private:
         struct impl;
-        std::shared_ptr<impl> m;
+        elfin::SharedWeakPImpl<impl> m;
 };
 
 /**

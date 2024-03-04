@@ -211,13 +211,19 @@ line_table::file::file(const ::std::string &file)
         validate_path();
 }
 
-line_table::file::file(dwarf_cursor &cur, const ::std::string &comp_dir)
+line_table::file::file(dwarf_cursor &cur, const ::std::string &comp_dir, directory_list &dirs)
 {
         cur.string(m_path);
-        validate_path(comp_dir);
         m_directory_index = cur.uleb128();
         m_time = cur.uleb128();
         m_length = cur.uleb128();
+        size_t dir_index = size_t(m_directory_index);
+        if (dir_index >= dirs.size()) {
+            validate_path(comp_dir);
+        } else {
+            std::string dir = dirs[dir_index].path();
+            validate_path(dir);
+        }
 }
 
 void line_table::file::validate_path()
@@ -258,16 +264,40 @@ void line_table::path_list<ItemT>::init(dwarf_cursor &cur, const ::std::string &
         ++cur.pos;
 }
 
+template<typename ItemT>
+void line_table::path_list<ItemT>::init(dwarf_cursor &cur, const ::std::string &comp_dir, directory_list& dirs)
+{
+        while (*cur.pos) {
+                emplace_back(cur, comp_dir, dirs);
+        }
+        ++cur.pos;
+}
+
 void line_table::directory_list::init(dwarf_cursor &cur, const ::std::string &comp_dir)
 {
         emplace_back(comp_dir);
-        path_list<directory>::init(cur, comp_dir);
+        std::string incdir;
+        while(true)
+        {
+            cur.string(incdir);
+            if(incdir.empty()){
+                break;
+            }
+            if(incdir.back() != '/'){
+                incdir += '/';
+            }
+            if(incdir[0] == '/'){
+                emplace_back(move(incdir));
+            }else{
+                emplace_back(comp_dir + incdir);
+            }
+        }
 }
 
-void line_table::file_list::init(dwarf_cursor &cur, const ::std::string &comp_dir, const ::std::string &cu_name)
+void line_table::file_list::init(dwarf_cursor &cur, const ::std::string &comp_dir, const ::std::string &cu_name, directory_list &dirs)
 {
         emplace_back(cu_name, comp_dir);
-        path_list<file>::init(cur, comp_dir);
+        path_list<file>::init(cur, comp_dir, dirs);
 }
 
 struct line_table::impl
@@ -375,7 +405,7 @@ line_table::line_table(const compilation_unit &cu, const shared_ptr<section> &se
         } else {
                 auto comp_dir =cu.comp_dir();
                 m->m_directories.init(cur, comp_dir);
-                m->m_files.init(cur, comp_dir, cu.name());
+                m->m_files.init(cur, comp_dir, cu.name(), m->m_directories);
         }
 }
 

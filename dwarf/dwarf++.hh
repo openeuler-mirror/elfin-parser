@@ -1354,9 +1354,9 @@ class line_table::file : public line_table::directory
 public:
         file(const ::std::string &path);
         file(const ::std::string &path, const ::std::string &comp_dir);
-        file(dwarf_cursor &cur, const ::std::string &comp_dir); // DWARF4
+        file(dwarf_cursor &cur, const ::std::string &comp_dir, directory_list &dirs); // DWARF4
         file(dwarf_cursor &cur, const format &format); // DWARF5
-
+        
 protected:
         /**
          * The index of directory in line_table::directory_list.
@@ -1381,7 +1381,7 @@ protected:
 };
 
 template<typename ItemT>
-class line_table::path_list : protected ::std::vector<ItemT>
+class line_table::path_list : public ::std::vector<ItemT>
 {
 public:
         using Item = ItemT;
@@ -1392,6 +1392,8 @@ protected:
         using ::std::vector<ItemT>::emplace_back;
 
         void init(dwarf_cursor &cur, const ::std::string &comp_dir);
+
+        void init(dwarf_cursor &cur, const ::std::string &comp_dir, directory_list &dirs);
 };
 
 /**
@@ -1418,7 +1420,7 @@ public:
         using path_list<file>::operator [];
 
         using path_list<file>::init;
-        void init(dwarf_cursor &cur, const ::std::string &comp_dir, const ::std::string &cu_name); // DWARF4
+        void init(dwarf_cursor &cur, const ::std::string &comp_dir, const ::std::string &cu_name, directory_list &dirs); // DWARF4
 };
 
 /**

@@ -1266,12 +1266,12 @@ class line_table::format_entry
 public:
         format_entry(cursor &cur);
 
-        constexpr DW_LNCT type() const
+        const DW_LNCT type() const
         {
                 return m_type;
         }
 
-        constexpr DW_FORM form() const
+        const DW_FORM form() const
         {
                 return m_form;
         }

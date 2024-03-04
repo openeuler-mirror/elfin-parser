@@ -37,7 +37,8 @@ void line_table::directory_format::init(cursor &cur)
                 // to caught usecase for directory with optional parameters
                 throw format_error("unexpected directory format entry count " + ::std::to_string(count));
         }
-        auto &entry = emplace_back(cur);
+        emplace_back(cur);
+        auto &entry = back();
         if (entry.type() != DW_LNCT::path) {
                 // to caught usecase for directory with optional parameters
                 throw format_error("unexpected directory format entry type " + to_string(entry.type()));
@@ -64,7 +65,8 @@ void line_table::file_format::init(cursor &cur)
                 throw format_error("unexpected file format entry count 0");
         }
         for (auto i = 0; i < count; ++i) {
-                auto &entry = emplace_back(cur);
+                emplace_back(cur);
+                auto &entry = back();
                 bool bFail = false;
                 switch (entry.type()) {
                 case DW_LNCT::path:

@@ -85,56 +85,58 @@ elf::elf(const std::shared_ptr<loader> &l)
         size_t hdr_size = (core_hdr->ei_class == elfclass::_32 ?
                            sizeof(Ehdr<Elf32>) : sizeof(Ehdr<Elf64>));
         const void *hdr = l->load(0, hdr_size);
-        canon_hdr(&m->hdr, hdr, core_hdr->ei_class, core_hdr->ei_data);
+        auto shared_impl = m.GetShared();
+        canon_hdr(&shared_impl->hdr, hdr, core_hdr->ei_class, core_hdr->ei_data);
 
         // More checks
-        if (m->hdr.version != 1)
+        if (shared_impl->hdr.version != 1)
                 throw format_error("bad section ELF version");
-        if (m->hdr.shnum && m->hdr.shstrndx >= m->hdr.shnum)
+        if (shared_impl->hdr.shnum && shared_impl->hdr.shstrndx >= shared_impl->hdr.shnum)
                 throw format_error("bad section name string table index");
 
+        auto weakCopy = get_weak_copy();
         // Load segments
-        const void *seg_data = l->load(m->hdr.phoff,
-                                       m->hdr.phentsize * m->hdr.phnum);
-        for (unsigned i = 0; i < m->hdr.phnum; i++) {
-                const void *seg = ((const char*)seg_data) + i * m->hdr.phentsize;
-                m->segments.push_back(segment(*this, seg));
+        const void *seg_data = l->load(shared_impl->hdr.phoff,
+                                       shared_impl->hdr.phentsize * shared_impl->hdr.phnum);
+        for (unsigned i = 0; i < shared_impl->hdr.phnum; i++) {
+                const void *seg = ((const char*)seg_data) + i * shared_impl->hdr.phentsize;
+                shared_impl->segments.push_back(segment(weakCopy, seg));
         }
 
         // Load sections
-        const void *sec_data = l->load(m->hdr.shoff,
-                                       m->hdr.shentsize * m->hdr.shnum);
-        for (unsigned i = 0; i < m->hdr.shnum; i++) {
-                const void *sec = ((const char*)sec_data) + i * m->hdr.shentsize;
+        const void *sec_data = l->load(shared_impl->hdr.shoff,
+                                       shared_impl->hdr.shentsize * shared_impl->hdr.shnum);
+        for (unsigned i = 0; i < shared_impl->hdr.shnum; i++) {
+                const void *sec = ((const char*)sec_data) + i * shared_impl->hdr.shentsize;
                 // XXX Circular reference.  Maybe this should be
                 // constructed on the fly?  Canonicalizing the header
                 // isn't super-cheap.
-                m->sections.push_back(section(*this, sec));
+                shared_impl->sections.push_back(section(weakCopy, sec));
         }
 }
 
 const Ehdr<> &
 elf::get_hdr() const
 {
-        return m->hdr;
+        return m.Get().hdr;
 }
 
 shared_ptr<loader>
 elf::get_loader() const
 {
-        return m->l;
+        return m.Get().l;
 }
 
 const std::vector<section> &
 elf::sections() const
 {
-        return m->sections;
+        return m.Get().sections;
 }
 
 const std::vector<segment> &
 elf::segments() const
 {
-        return m->segments;
+        return m.Get().segments;
 }
 
 const section &
@@ -143,14 +145,14 @@ elf::get_section(const std::string &name) const
         for (auto &sec : sections())
                 if (name == sec.get_name(nullptr))
                         return sec;
-        return m->invalid_section;
+        return m.Get().invalid_section;
 }
 
 const section &
 elf::get_section(unsigned index) const
 {
         if (index >= sections().size())
-                return m->invalid_section;
+                return m.Get().invalid_section;
         return sections().at(index);
 }
 
@@ -158,7 +160,7 @@ const segment&
 elf::get_segment(unsigned index) const
 {
         if (index >= segments().size())
-                return m->invalid_segment;
+                return m.Get().invalid_segment;
         return segments().at(index);
 }
 

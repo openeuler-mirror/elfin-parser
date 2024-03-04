@@ -40,11 +40,12 @@ dwarf::dwarf(const std::shared_ptr<loader> &l)
         data = l->load(section_type::info, &size);
         if (!data)
                 throw format_error("required .debug_info section missing");
-        m->sec_info = make_shared<section>(section_type::info, data, size, byte_order::lsb);
+        auto shared_impl = m.GetShared();
+        shared_impl->sec_info = make_shared<section>(section_type::info, data, size, byte_order::lsb);
 
         // Sniff the endianness from the version field of the first
         // CU. This is always a small but non-zero integer.
-        cursor endcur(m->sec_info);
+        cursor endcur(shared_impl->sec_info);
         // Skip length.
         section_length length = endcur.fixed<uword>();
         if (length == 0xffffffff)
@@ -53,23 +54,24 @@ dwarf::dwarf(const std::shared_ptr<loader> &l)
         uhalf version = endcur.fixed<uhalf>();
         uhalf versionbe = (version >> 8) | ((version & 0xFF) << 8);
         if (versionbe < version) {
-                m->sec_info = make_shared<section>(section_type::info, data, size, byte_order::msb);
+                shared_impl->sec_info = make_shared<section>(section_type::info, data, size, byte_order::msb);
         }
 
         data = l->load(section_type::abbrev, &size);
         if (!data)
                 throw format_error("required .debug_abbrev section missing");
-        m->sec_abbrev = make_shared<section>(section_type::abbrev, data, size, m->sec_info->ord);
+        shared_impl->sec_abbrev = make_shared<section>(section_type::abbrev, data, size, shared_impl->sec_info->ord);
 
         // Get compilation units.  Everything derives from these, so
         // there's no point in doing it lazily.
-        cursor infocur(m->sec_info);
+        cursor infocur(shared_impl->sec_info);
+        auto weakCopy = get_weak_copy();
         while (!infocur.end()) {
                 // XXX Circular reference.  Given that we now require
                 // the dwarf object to stick around for DIEs, maybe we
                 // might as well require that for units, too.
-                m->compilation_units.emplace_back(
-                        *this, infocur.get_section_offset());
+                shared_impl->compilation_units.emplace_back(
+                        weakCopy, infocur.get_section_offset());
                 infocur.subsection();
         }
 }
@@ -84,40 +86,41 @@ dwarf::compilation_units() const
         static std::vector<compilation_unit> empty;
         if (!m)
                 return empty;
-        return m->compilation_units;
+        return m.Get().compilation_units;
 }
 
 const type_unit &
 dwarf::get_type_unit(uint64_t type_signature) const
 {
-        if (!m->have_type_units) {
+        auto &impl = m.Get();
+        if (!impl.have_type_units) {
                 cursor tucur(get_section(section_type::types));
                 while (!tucur.end()) {
                         // XXX Circular reference
                         type_unit tu(*this, tucur.get_section_offset());
-                        m->type_units[tu.get_type_signature()] = tu;
+                        impl.type_units[tu.get_type_signature()] = tu;
                         tucur.subsection();
                 }
-                m->have_type_units = true;
+                impl.have_type_units = true;
         }
-        if (!m->type_units.count(type_signature))
+        if (!impl.type_units.count(type_signature))
                 throw out_of_range("type signature 0x" + to_hex(type_signature));
-        return m->type_units[type_signature];
+        return impl.type_units[type_signature];
 }
 
 std::shared_ptr<section>
 dwarf::get_section(section_type type) const
 {
         if (type == section_type::info)
-                return m->sec_info;
+                return m.Get().sec_info;
         if (type == section_type::abbrev)
-                return m->sec_abbrev;
+                return m.Get().sec_abbrev;
 
         if (!has_section(type))
                 throw format_error(std::string(elf::section_type_to_name(type))
                                    + " section missing");
 
-        return m->sections[type];
+        return m.Get().sections[type];
 }
 
 bool
@@ -126,17 +129,17 @@ dwarf::has_section(section_type type) const
         if ((type == section_type::info) || (type == section_type::abbrev)) {
                 return true;
         }
-
-        auto it = m->sections.find(type);
-        if (it != m->sections.end())
+        auto &impl = m.Get();
+        auto it = impl.sections.find(type);
+        if (it != impl.sections.end())
                 return true;
 
         size_t size;
-        const void *data = m->l->load(type, &size);
+        const void *data = impl.l->load(type, &size);
         if (!data)
                 return false;
 
-        m->sections[type] = std::make_shared<section>(section_type::str, data, size, m->sec_info->ord);
+        impl.sections[type] = std::make_shared<section>(section_type::str, data, size, impl.sec_info->ord);
         return true;
 }
 

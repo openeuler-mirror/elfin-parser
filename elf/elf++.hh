@@ -5,6 +5,7 @@
 #ifndef _ELFPP_HH_
 #define _ELFPP_HH_
 
+#include "../common/shared_weak.h"
 #include "common.hh"
 #include "data.hh"
 
@@ -72,7 +73,7 @@ public:
 
         bool valid() const
         {
-                return !!m;
+                return m;
         }
 
         /**
@@ -114,9 +115,17 @@ public:
          */
         const section &get_section(unsigned index) const;
 
+        elf get_weak_copy()
+        {
+                elf weak = *this;
+                weak.m.ToWeak();
+
+                return weak;
+        }
+
 private:
         struct impl;
-        std::shared_ptr<impl> m;
+        elfin::SharedWeakPImpl<impl> m;
 };
 
 /**

@@ -124,6 +124,8 @@ void line_table::file_format::init(cursor &cur)
                 case DW_LNCT::md5:
                         bFail = entry.form() != DW_FORM::data16;
                         break;
+                default:
+                        break;
                 }
                 if (bFail) {
                         throw format_error("unexpected file format entry type " + to_string(entry.type()) + " form " + to_string(entry.form()));
@@ -197,6 +199,8 @@ line_table::file::file(dwarf_cursor &cur, const format &format)
                         m_md5 = cur.pos;
                         cur.skip_form(format_entry.form());
                         break;
+                default:
+                        break;
                 }
         }
 }
@@ -252,7 +256,7 @@ void line_table::path_list<ItemT>::init(dwarf_cursor &cur, const format &format)
         if (!count) {
                 throw format_error("unexpected path count 0");
         }
-        for (auto i = 0; i < count; ++i) {
+        for (auto i = 0u; i < count; ++i) {
                 emplace_back(cur, format);
         }
 }

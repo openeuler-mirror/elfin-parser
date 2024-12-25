@@ -1364,6 +1364,7 @@ public:
         file(const ::std::string &path, const ::std::string &comp_dir);
         file(dwarf_cursor &cur, const ::std::string &comp_dir, directory_list &dirs); // DWARF4
         file(dwarf_cursor &cur, const format &format); // DWARF5
+        file(dwarf_cursor &cur, const format &format, directory_list &dirs); // DWARF5
         
 protected:
         /**
@@ -1395,6 +1396,8 @@ public:
         using Item = ItemT;
 
         void init(dwarf_cursor &cur, const format &format); // DWARF5
+
+        void init(dwarf_cursor &cur, const format &format, directory_list &dirs); // DWARF5
 
 protected:
         using ::std::vector<ItemT>::emplace_back;

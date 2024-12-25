@@ -205,6 +205,37 @@ line_table::file::file(dwarf_cursor &cur, const format &format)
         }
 }
 
+line_table::file::file(dwarf_cursor &cur, const format &format, directory_list &dirs)
+{
+        for (auto &format_entry : format) {
+                switch (format_entry.type()) {
+                case DW_LNCT::path:
+                        m_path = cur.cstr(format_entry.form());
+                        break;
+                case DW_LNCT::directory_index:
+                        m_directory_index = cur.fixed<decltype(m_directory_index)>(format_entry.form());
+                        break;
+                case DW_LNCT::timestamp:
+                        m_time = cur.fixed<decltype(m_time)>(format_entry.form());
+                        break;
+                case DW_LNCT::size:
+                        m_length = cur.fixed<decltype(m_length)>(format_entry.form());
+                        break;
+                case DW_LNCT::md5:
+                        m_md5 = cur.pos;
+                        cur.skip_form(format_entry.form());
+                        break;
+                }
+        }
+        if (m_directory_index >= dirs.size())
+        {
+                validate_path();
+        } else {
+                std::string dir = dirs[m_directory_index].path();
+                validate_path(dir);
+        }
+}
+
 line_table::file::file(const ::std::string &file, const ::std::string &comp_dir)
 {
         m_path = file;
@@ -258,6 +289,18 @@ void line_table::path_list<ItemT>::init(dwarf_cursor &cur, const format &format)
         }
         for (auto i = 0u; i < count; ++i) {
                 emplace_back(cur, format);
+        }
+}
+
+template<typename ItemT>
+void line_table::path_list<ItemT>::init(dwarf_cursor &cur, const format &format, directory_list& dirs)
+{
+        auto count = cur.uleb128();
+        if (!count) {
+                throw format_error("unexpected path count 0");
+        }
+        for (auto i = 0; i < count; ++i) {
+                emplace_back(cur, format, dirs);
         }
 }
 
@@ -407,7 +450,7 @@ line_table::line_table(const compilation_unit &cu, const shared_ptr<section> &se
                 m->m_directory_format.init(cur);
                 m->m_directories.init(cur, m->m_directory_format);
                 m->m_file_format.init(cur);
-                m->m_files.init(cur, m->m_file_format);
+                m->m_files.init(cur, m->m_file_format, m->m_directories);
         } else {
                 auto comp_dir =cu.comp_dir();
                 m->m_directories.init(cur, comp_dir);

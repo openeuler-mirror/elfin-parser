@@ -175,7 +175,11 @@ void line_table::directory::validate_path(const ::std::string &comp_dir)
 {
         validate_path();
         if (m_path.front() != '/') {
-                m_path = comp_dir + m_path;
+                if (comp_dir.back() != '/') {
+                        m_path = comp_dir + '/' + m_path;
+                } else {
+                        m_path = comp_dir + m_path;
+                }
         }
 }
 
@@ -274,7 +278,11 @@ void line_table::file::validate_path(const ::std::string &comp_dir)
 {
         validate_path();
         if (m_path.front() != '/') {
-                m_path = comp_dir + m_path;
+                if (comp_dir.back() != '/') {
+                        m_path = comp_dir + '/' + m_path;
+                } else {
+                        m_path = comp_dir + m_path;
+                }
         } else {
                 m_path = m_path;
         }
